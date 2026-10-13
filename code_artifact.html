@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2027新春庙会 - 互动游戏与集章打卡</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- html2canvas for generating posters -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        festive: {
+                            red: '#D32F2F',
+                            darkred: '#8B0000',
+                            gold: '#FFD700',
+                            lightgold: '#FFF5C2',
+                            amber: '#FFBF00',
+                            bg: '#4A0000'
+                        }
+                    },
+                    fontFamily: {
+                        calligraphy: ['"Ma Shan Zheng"', 'cursive'],
+                        serif: ['"Noto Serif SC"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #4a0000 0%, #8b0000 50%, #5c0000 100%);
+            color: #fff5c2;
+            font-family: 'Noto Serif SC', serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Festive Background Pattern */
+        .pattern-bg {
+            background-color: #5c0000;
+            background-image: radial-gradient(#ffd700 0.75px, transparent 0.75px), radial-gradient(#ffd700 0.75px, #5c0000 0.75px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            opacity: 0.95;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #3a0000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffd700;
+            border-radius: 4px;
+        }
+
+        /* Red Lantern Swing Animation */
+        @keyframes swing {
+            0% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+            100% { transform: rotate(-5deg); }
+        }
+        .lantern-swing {
+            transform-origin: top center;
+            animation: swing 3s ease-in-out infinite;
+        }
+
+        /* Stamp Seal Effect */
+        .stamp-seal {
+            border: 3px solid #d32f2f;
+            color: #d32f2f;
+            font-family: 'Ma Shan Zheng', cursive;
+            mask-image: radial-gradient(circle, rgba(0,0,0,1) 70%, rgba(0,0,0,0.6) 100%);
+            box-shadow: inset 0 0 8px rgba(211, 47, 47, 0.4);
+        }
+
+        .stamp-seal.active {
+            border-color: #ffd700;
+            color: #ffd700;
+            background-color: rgba(211, 47, 47, 0.85);
+            box-shadow: 0 0 15px #ffd700, inset 0 0 10px #ffd700;
+            animation: stampPulse 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes stampPulse {
+            0% { transform: scale(2) rotate(-15deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* Glassmorphism Red Panels */
+        .glass-panel {
+            background: rgba(139, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Gold Border Glow */
+        .gold-border {
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Canvas Overlay */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="pattern-bg relative pb-12">
+
+    <!-- Background Particle Falling Effect -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Top Decorative Lanterns -->
+    <div class="fixed top-0 left-0 right-0 z-40 pointer-events-none flex justify-between px-4 sm:px-12">
+        <div class="lantern-swing text-center">
+            <div class="w-1 h-8 bg-amber-400 mx-auto"></div>
+            <div class="bg-red-600 text-yellow-300 w-12 sm:w-16 h-14 sm:h-20 rounded-2xl border-2 border-yellow-400 flex flex-col items-center justify-center shadow-lg relative">
+                <span class="text-xs sm:text-sm font-bold font-calligraphy">新春</span>
+                <span class="text-xs font-bold font-calligraphy">快乐</span>
+                <div class="absolute -bottom-4 w-2 h-6 bg-yellow-500"></div>
+            </div>
+        </div>
+        <div class="hidden sm:block lantern-swing text-center" style="animation-delay: -1s;">
+            <div class="w-1 h-6 bg-amber-400 mx-auto"></div>
+            <div class="bg-red-600 text-yellow-300 w-12 h-16 rounded-2xl border-2 border-yellow-400 flex flex-col items-center justify-center shadow-lg">
+                <span class="text-xs font-bold font-calligraphy">恭喜</span>
+                <span class="text-xs font-bold font-calligraphy">发财</span>
+            </div>
+        </div>
+        <div class="lantern-swing text-center" style="animation-delay: -1.5s;">
+            <div class="w-1 h-8 bg-amber-400 mx-auto"></div>
+            <div class="bg-red-600 text-yellow-300 w-12 sm:w-16 h-14 sm:h-20 rounded-2xl border-2 border-yellow-400 flex flex-col items-center justify-center shadow-lg relative">
+                <span class="text-xs sm:text-sm font-bold font-calligraphy">庙会</span>
+                <span class="text-xs font-bold font-calligraphy">大吉</span>
+                <div class="absolute -bottom-4 w-2 h-6 bg-yellow-500"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Header -->
+    <header class="relative z-10 pt-8 pb-4 text-center px-4">
+        <div class="inline-block relative">
+            <span class="text-amber-400 text-sm tracking-widest uppercase font-semibold block mb-1">2027 丁未蛇年 · 民俗庙会</span>
+            <h1 class="text-4xl sm:text-6xl font-black font-calligraphy text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-amber-500 drop-shadow-md">
+                新春庙会互动游园会
+            </h1>
+            <p class="mt-2 text-yellow-100 text-sm sm:text-base max-w-xl mx-auto opacity-90">
+                欢度新春佳节！逛庙会、摇吉签、猜灯谜、接福字，集齐五福印章解锁新春好礼！
+            </p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex justify-center my-6 gap-2 sm:gap-4 px-2">
+            <button onclick="switchTab('games')" id="tab-games" class="tab-btn px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-bold text-sm sm:text-base transition-all duration-300 bg-yellow-400 text-red-950 shadow-lg hover:bg-yellow-300">
+                <i class="fa-solid fa-gamepad mr-2"></i>庙会小游戏
+            </button>
+            <button onclick="switchTab('stamps')" id="tab-stamps" class="tab-btn px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-bold text-sm sm:text-base transition-all duration-300 bg-red-900/80 text-yellow-200 border border-yellow-500/50 hover:bg-red-800">
+                <i class="fa-solid fa-stamp mr-2"></i>集章打卡卡包 <span id="stamp-badge" class="ml-1 bg-yellow-400 text-red-900 text-xs px-2 py-0.5 rounded-full">0/5</span>
+            </button>
+            <button onclick="switchTab('guide')" id="tab-guide" class="tab-btn px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-bold text-sm sm:text-base transition-all duration-300 bg-red-900/80 text-yellow-200 border border-yellow-500/50 hover:bg-red-800">
+                <i class="fa-solid fa-map-location-dot mr-2"></i>庙会筹备指南
+            </button>
+        </nav>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="relative z-10 max-w-6xl mx-auto px-4">
+
+        <!-- TAB 1: GAMES SECTION -->
+        <div id="section-games" class="space-y-8">
+            
+            <!-- Game Grid Layout -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- 1. 新春签筒 / 摇幸运签 -->
+                <div class="glass-panel rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden">
+                    <div class="absolute -top-6 -right-6 text-yellow-500/10 text-9xl font-calligraphy pointer-events-none">签</div>
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-bold font-calligraphy text-yellow-300 flex items-center gap-2">
+                                <i class="fa-solid fa-scroll text-yellow-400"></i> 新春吉签 / 摇运势
+                            </h2>
+                            <span class="text-xs px-2.5 py-1 bg-red-900/90 border border-yellow-400/40 text-yellow-200 rounded-full">解锁印章：【福】</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-yellow-100/80 mb-4">诚心摇动签筒，抽取你的2027新年专属吉签与解签祝福！</p>
+                    </div>
+
+                    <!-- Div for Fortune Stick App -->
+                    <div class="bg-red-950/60 rounded-xl p-4 border border-yellow-500/30 text-center my-2 min-h-[220px] flex flex-col items-center justify-center relative">
+                        <!-- Stick Container Visual -->
+                        <div id="stick-box" class="cursor-pointer transition-transform duration-300 hover:scale-105" onclick="drawFortune()">
+                            <div class="w-20 h-28 bg-gradient-to-b from-amber-700 to-amber-900 border-2 border-yellow-400 rounded-b-xl relative flex items-center justify-center shadow-lg mx-auto">
+                                <div class="absolute -top-6 flex gap-1 justify-center w-full">
+                                    <div class="w-1.5 h-10 bg-amber-200 rounded-t border border-amber-800"></div>
+                                    <div class="w-1.5 h-12 bg-amber-300 rounded-t border border-amber-800 transform -rotate-6"></div>
+                                    <div class="w-1.5 h-10 bg-amber-200 rounded-t border border-amber-800"></div>
+                                </div>
+                                <span class="font-calligraphy text-2xl text-yellow-300">吉签</span>
+                            </div>
+                        </div>
+
+                        <!-- Result Modal/Text -->
+                        <div id="fortune-result" class="hidden mt-3 w-full">
+                            <div class="text-amber-300 font-calligraphy text-3xl font-bold tracking-wider mb-1" id="fortune-title">【大吉】</div>
+                            <p class="text-yellow-100 text-xs sm:text-sm font-serif italic mb-2" id="fortune-verse">"春风送暖入屠苏，迎春接福展宏图"</p>
+                            <p class="text-xs text-yellow-200/90 bg-red-900/80 p-2 rounded border border-yellow-500/30" id="fortune-desc">新年鸿运当头，百事顺遂，事业学业蒸蒸日上！</p>
+                        </div>
+                    </div>
+
+                    <button onclick="drawFortune()" class="w-full mt-4 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-red-950 font-bold rounded-xl shadow-lg hover:from-yellow-400 hover:to-amber-400 transition transform active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-hand-holding-hand"></i> 点击摇签筒 / 抽取吉签
+                    </button>
+                </div>
+
+                <!-- 2. 新春猜灯谜 -->
+                <div class="glass-panel rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden">
+                    <div class="absolute -top-6 -right-6 text-yellow-500/10 text-9xl font-calligraphy pointer-events-none">谜</div>
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-bold font-calligraphy text-yellow-300 flex items-center gap-2">
+                                <i class="fa-solid fa-lightbulb text-yellow-400"></i> 新春趣猜灯谜
+                            </h2>
+                            <span class="text-xs px-2.5 py-1 bg-red-900/90 border border-yellow-400/40 text-yellow-200 rounded-full">解锁印章：【禄】</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-yellow-100/80 mb-4">弘扬传统文化，动脑猜灯谜！答对任意灯谜即可集章。</p>
+                    </div>
+
+                    <!-- Riddle Card Area -->
+                    <div class="bg-red-950/60 rounded-xl p-4 border border-yellow-500/30 my-2 min-h-[220px] flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center text-xs text-yellow-400 mb-2">
+                                <span id="riddle-category">类别：字谜</span>
+                                <span id="riddle-count">第 1 / 5 题</span>
+                            </div>
+                            <h3 id="riddle-question" class="text-lg sm:text-xl font-bold text-yellow-100 my-2">"东南西北无路走"（打一字）</h3>
+                            <div id="riddle-hint-box" class="hidden text-xs text-amber-300/90 bg-red-900/50 p-2 rounded mt-2">
+                                <i class="fa-solid fa-circle-info mr-1"></i> 提示：<span id="riddle-hint">想想这四个方向合在一起是什么</span>
+                            </div>
+                        </div>
+
+                        <!-- Answer Input & Card Flip -->
+                        <div class="mt-4">
+                            <div id="riddle-answer-box" class="hidden p-2 bg-yellow-500/20 border border-yellow-400 rounded text-center mb-2">
+                                <span class="text-xs text-yellow-300 block">谜底答案：</span>
+                                <span id="riddle-answer" class="text-xl font-bold font-calligraphy text-yellow-300">“哑”</span>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <input type="text" id="riddle-input" placeholder="输入你的答案..." class="flex-1 bg-red-900/80 border border-yellow-500/40 rounded-lg px-3 py-1.5 text-sm text-yellow-100 focus:outline-none focus:border-yellow-400">
+                                <button onclick="checkRiddle()" class="bg-yellow-500 text-red-950 px-4 py-1.5 rounded-lg font-bold text-sm hover:bg-yellow-400">提交</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="toggleRiddleHint()" class="flex-1 py-2.5 bg-red-900/80 border border-yellow-500/40 text-yellow-200 text-xs sm:text-sm font-semibold rounded-xl hover:bg-red-800">
+                            <i class="fa-regular fa-lightbulb"></i> 显示提示
+                        </button>
+                        <button onclick="revealRiddle()" class="flex-1 py-2.5 bg-red-900/80 border border-yellow-500/40 text-yellow-200 text-xs sm:text-sm font-semibold rounded-xl hover:bg-red-800">
+                            <i class="fa-solid fa-eye"></i> 看答案
+                        </button>
+                        <button onclick="nextRiddle()" class="py-2.5 px-4 bg-amber-600 text-yellow-100 text-xs sm:text-sm font-semibold rounded-xl hover:bg-amber-500">
+                            下一题 <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. 迎春接福（Mini-Game） -->
+                <div class="glass-panel rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden md:col-span-2 lg:col-span-1">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-2xl font-bold font-calligraphy text-yellow-300 flex items-center gap-2">
+                            <i class="fa-solid fa-hand-holding-dollar text-yellow-400"></i> 迎春接福 / 接红包元宝
+                        </h2>
+                        <span class="text-xs px-2.5 py-1 bg-red-900/90 border border-yellow-400/40 text-yellow-200 rounded-full">解锁印章：【财】</span>
+                    </div>
+                    <p class="text-xs text-yellow-100/80 mb-3">左右移动底部的“聚宝盆”，接住红包（+10分）、元宝（+20分），避开爆竹炸弹！达到 60 分即获财字印章。</p>
+
+                    <!-- Game Canvas Container -->
+                    <div class="relative w-full bg-red-950/80 rounded-xl border border-yellow-500/40 overflow-hidden flex flex-col items-center justify-center">
+                        <canvas id="gameCanvas" width="360" height="220" class="w-full h-[220px] touch-none"></canvas>
+
+                        <!-- Start Screen Overlay -->
+                        <div id="game-start-overlay" class="absolute inset-0 bg-red-950/90 flex flex-col items-center justify-center p-4 text-center">
+                            <span class="text-3xl font-calligraphy text-yellow-300 mb-2">金玉满堂·接福报</span>
+                            <p class="text-xs text-yellow-200/80 mb-4">使用键盘 ← → 键或在手机上左右滑动屏幕控制聚宝盆</p>
+                            <button onclick="startGame()" class="px-6 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 text-red-950 font-bold rounded-full shadow-lg hover:from-yellow-400">
+                                开始游戏
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-3 text-xs text-yellow-200 font-semibold">
+                        <span>当前得分: <strong id="game-score" class="text-yellow-400 text-base">0</strong></span>
+                        <span>最高纪录: <strong id="game-highscore" class="text-yellow-400">0</strong></span>
+                    </div>
+                </div>
+
+                <!-- 4. 幸运大转盘 / 投壶迎喜抽奖 -->
+                <div class="glass-panel rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden md:col-span-2 lg:col-span-1">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-2xl font-bold font-calligraphy text-yellow-300 flex items-center gap-2">
+                            <i class="fa-solid fa-dharmachakra text-yellow-400"></i> 庙会幸运大转盘
+                        </h2>
+                        <span class="text-xs px-2.5 py-1 bg-red-900/90 border border-yellow-400/40 text-yellow-200 rounded-full">解锁印章：【喜】</span>
+                    </div>
+                    <p class="text-xs text-yellow-100/80 mb-3">转动庙会好运大转盘，抽取新春精美礼品！</p>
+
+                    <!-- Lucky Wheel Container -->
+                    <div class="relative flex items-center justify-center py-2">
+                        <!-- Wheel Canvas -->
+                        <canvas id="wheelCanvas" width="220" height="220" class="rounded-full shadow-xl border-4 border-yellow-400"></canvas>
+                        <!-- Pointer -->
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-yellow-400 rounded-full border-2 border-red-800 flex items-center justify-center shadow-md cursor-pointer" onclick="spinWheel()">
+                            <i class="fa-solid fa-play text-red-900 text-xs"></i>
+                            <div class="absolute -top-3 left-1/2 -translate-x-1/2 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[12px] border-b-yellow-400"></div>
+                        </div>
+                    </div>
+
+                    <button onclick="spinWheel()" id="spin-btn" class="w-full mt-2 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 text-red-950 font-bold rounded-xl shadow-lg hover:from-yellow-400 transition">
+                        开启幸运抽奖
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB 2: STAMP COLLECTION CARD -->
+        <div id="section-stamps" class="hidden space-y-6">
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 text-center max-w-3xl mx-auto border-2 border-yellow-400/60">
+                <div class="inline-block px-4 py-1 bg-yellow-500/20 border border-yellow-400/40 rounded-full text-xs text-yellow-300 mb-2">
+                    2027 庙会打卡凭证
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-black font-calligraphy text-yellow-300 mb-2">五福临门 · 集章成就卡</h2>
+                <p class="text-xs sm:text-sm text-yellow-100/80 mb-6">完成首页互动游戏解锁相应盖章。集齐“福、禄、寿、喜、财”五款印章即可解锁庙会大礼包！</p>
+
+                <!-- Stamp Slots Grid -->
+                <div class="grid grid-cols-5 gap-2 sm:gap-4 my-8">
+                    <!-- Stamp 1: 福 -->
+                    <div class="flex flex-col items-center">
+                        <div id="stamp-slot-fu" class="stamp-seal w-14 h-14 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-3xl font-bold bg-red-950/40">
+                            福
+                        </div>
+                        <span class="text-xs text-yellow-200 mt-2">吉签祈福</span>
+                    </div>
+                    <!-- Stamp 2: 禄 -->
+                    <div class="flex flex-col items-center">
+                        <div id="stamp-slot-lu" class="stamp-seal w-14 h-14 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-3xl font-bold bg-red-950/40">
+                            禄
+                        </div>
+                        <span class="text-xs text-yellow-200 mt-2">猜谜纳禄</span>
+                    </div>
+                    <!-- Stamp 3: 寿 -->
+                    <div class="flex flex-col items-center">
+                        <div id="stamp-slot-shou" class="stamp-seal w-14 h-14 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-3xl font-bold bg-red-950/40">
+                            寿
+                        </div>
+                        <span class="text-xs text-yellow-200 mt-2">游园打卡</span>
+                    </div>
+                    <!-- Stamp 4: 喜 -->
+                    <div class="flex flex-col items-center">
+                        <div id="stamp-slot-xi" class="stamp-seal w-14 h-14 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-3xl font-bold bg-red-950/40">
+                            喜
+                        </div>
+                        <span class="text-xs text-yellow-200 mt-2">转盘迎喜</span>
+                    </div>
+                    <!-- Stamp 5: 财 -->
+                    <div class="flex flex-col items-center">
+                        <div id="stamp-slot-cai" class="stamp-seal w-14 h-14 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-3xl font-bold bg-red-950/40">
+                            财
+                        </div>
+                        <span class="text-xs text-yellow-200 mt-2">接福聚财</span>
+                    </div>
+                </div>
+
+                <!-- Daily Check-in Button for '寿' Stamp -->
+                <div class="mb-6 p-4 bg-red-950/60 rounded-xl border border-yellow-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-left">
+                        <h4 class="text-sm font-bold text-yellow-300">逛庙会长寿打卡</h4>
+                        <p class="text-xs text-yellow-100/70">直接点击下方打卡，即可领取【寿】字印章</p>
+                    </div>
+                    <button onclick="claimShouStamp()" id="shou-btn" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-red-950 font-bold text-xs sm:text-sm rounded-lg shadow">
+                        一键完成打卡
+                    </button>
+                </div>
+
+                <!-- Reward Claim Box -->
+                <div id="reward-claim-box" class="p-6 bg-gradient-to-r from-yellow-500/20 via-amber-500/20 to-yellow-500/20 rounded-xl border-2 border-yellow-400/50">
+                    <h3 class="text-xl font-bold font-calligraphy text-yellow-300 mb-2">🎁 庙会新春大礼包兑换</h3>
+                    <p id="reward-status-text" class="text-xs sm:text-sm text-yellow-100/80 mb-4">目前已集齐 <span id="stamp-count-text" class="text-yellow-400 font-bold">0</span>/5 个印章，请继续完成游园游戏！</p>
+                    <div class="flex justify-center gap-4">
+                        <button id="claim-gift-btn" onclick="openGiftModal()" disabled class="px-6 py-3 bg-gray-600 opacity-50 text-gray-200 font-bold rounded-xl shadow cursor-not-allowed transition">
+                            兑换新春大礼包
+                        </button>
+                        <button onclick="generatePoster()" class="px-6 py-3 bg-red-900 border border-yellow-400 text-yellow-200 font-bold rounded-xl shadow hover:bg-red-800 transition">
+                            <i class="fa-solid fa-image mr-1"></i> 生成贺卡成就图
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: TEMPLE FAIR PLANNING GUIDE -->
+        <div id="section-guide" class="hidden space-y-6">
+            <div class="glass-panel rounded-2xl p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6 border-b border-yellow-500/30 pb-4">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold font-calligraphy text-yellow-300">2027新春庙会 - 现场筹备与游戏方案手册</h2>
+                        <p class="text-xs sm:text-sm text-yellow-100/70 mt-1">适用于社区、学校或街区庙会筹备团队参考使用</p>
+                    </div>
+                    <span class="hidden sm:inline-block px-3 py-1 bg-yellow-500/20 text-yellow-300 border border-yellow-400/40 rounded-full text-xs">策划必备</span>
+                </div>
+
+                <!-- Tabbed Subsections for Guide -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Column 1: Game Equipment & Rules -->
+                    <div class="bg-red-950/60 p-5 rounded-xl border border-yellow-500/30">
+                        <h3 class="text-lg font-bold text-yellow-300 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-yellow-400"></i> 线下游戏道具准备清单
+                        </h3>
+                        <ul class="text-xs sm:text-sm text-yellow-100/90 space-y-2.5 list-disc pl-4">
+                            <li><strong class="text-yellow-300">投壶迎喜：</strong> 复古木质投壶2个、竹箭20支、地贴警戒线。</li>
+                            <li><strong class="text-yellow-300">猜灯谜：</strong> 红色小灯笼30-50个、灯谜卡纸、谜底核对本、小红笔。</li>
+                            <li><strong class="text-yellow-300">幸运圈圈：</strong> 塑料/藤条套圈30个、不同积分的礼品摆放台。</li>
+                            <li><strong class="text-yellow-300">集章处：</strong> 专属定制印章（福/禄/寿/喜/财）、红墨水垫、集章纸卡。</li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 2: Booth Flow & Logistics -->
+                    <div class="bg-red-950/60 p-5 rounded-xl border border-yellow-500/30">
+                        <h3 class="text-lg font-bold text-yellow-300 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-route text-yellow-400"></i> 现场摊位路线与动线规划
+                        </h3>
+                        <ul class="text-xs sm:text-sm text-yellow-100/90 space-y-2.5 list-disc pl-4">
+                            <li><strong class="text-yellow-300">入口区：</strong> 领取虚拟/纸质“集章卡”与庙会导览图。</li>
+                            <li><strong class="text-yellow-300">民俗体验区：</strong> 安排“写春联”、“剪纸”等较静止的摊位。</li>
+                            <li><strong class="text-yellow-300">游戏互动区：</strong> 投壶、套圈等高人流项目保持 2 米以上间距。</li>
+                            <li><strong class="text-yellow-300">兑奖中心：</strong> 设于出口附近，避免人流拥堵并便于核销。</li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 3: Emergency & Safety -->
+                    <div class="bg-red-950/60 p-5 rounded-xl border border-yellow-500/30">
+                        <h3 class="text-lg font-bold text-yellow-300 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-yellow-400"></i> 现场安全与应急预案
+                        </h3>
+                        <ul class="text-xs sm:text-sm text-yellow-100/90 space-y-2.5 list-disc pl-4">
+                            <li><strong class="text-yellow-300">电力安全：</strong> 美食区及灯光音响设备接电配防漏电保护。</li>
+                            <li><strong class="text-yellow-300">人流管控：</strong> 热门游戏摊位设置排队隔离带与单向游览通道。</li>
+                            <li><strong class="text-yellow-300">医疗与消防：</strong> 备齐灭火器、急救箱及急救人员联络方式。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Virtual Booth Layout Map Simulation -->
+                <div class="mt-8 bg-red-950/40 p-5 rounded-xl border border-yellow-500/30">
+                    <h3 class="text-lg font-bold text-yellow-300 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-map text-yellow-400"></i> 庙会场地示意图示例
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+                        <div class="p-3 bg-red-900/80 border border-yellow-500/30 rounded-lg">
+                            <i class="fa-solid fa-archway text-yellow-400 text-lg mb-1 block"></i>
+                            <strong>庙会正门入口</strong>
+                            <p class="text-[10px] text-yellow-200/70">领取打卡卡包</p>
+                        </div>
+                        <div class="p-3 bg-red-900/80 border border-yellow-500/30 rounded-lg">
+                            <i class="fa-solid fa-gamepad text-yellow-400 text-lg mb-1 block"></i>
+                            <strong>民俗游戏摊位区</strong>
+                            <p class="text-[10px] text-yellow-200/70">投壶/套圈/猜灯谜</p>
+                        </div>
+                        <div class="p-3 bg-red-900/80 border border-yellow-500/30 rounded-lg">
+                            <i class="fa-solid fa-utensils text-yellow-400 text-lg mb-1 block"></i>
+                            <strong>年味美食市集区</strong>
+                            <p class="text-[10px] text-yellow-200/70">糖画/冰糖葫芦/小吃</p>
+                        </div>
+                        <div class="p-3 bg-red-900/80 border border-yellow-500/30 rounded-lg">
+                            <i class="fa-solid fa-gift text-yellow-400 text-lg mb-1 block"></i>
+                            <strong>福气兑奖中心</strong>
+                            <p class="text-[10px] text-yellow-200/70">五福集齐兑大奖</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL: Reward Gift Unlock -->
+    <div id="gift-modal" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-4">
+        <div class="glass-panel p-6 sm:p-8 rounded-2xl max-w-md w-full text-center relative border-2 border-yellow-400 animate-bounce-in">
+            <button onclick="closeGiftModal()" class="absolute top-3 right-3 text-yellow-300 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="text-5xl text-yellow-400 mb-3"><i class="fa-solid fa-gift"></i></div>
+            <h3 class="text-2xl font-bold font-calligraphy text-yellow-300 mb-2">恭喜获得庙会新春大礼包！</h3>
+            <p class="text-xs sm:text-sm text-yellow-100 mb-4">凭此虚拟凭证可至线下庙会【兑奖中心】领取：</p>
+            <div class="bg-red-950/80 p-4 rounded-xl border border-yellow-500/40 text-left text-xs space-y-2 mb-6">
+                <p>🧧 <strong>定制新春对联春贴礼盒</strong> × 1份</p>
+                <p>🍭 <strong>传统手绘糖画兑换券</strong> × 1张</p>
+                <p>🧸 <strong>2027吉祥蛇年公仔玩偶</strong> × 1个</p>
+            </div>
+            <button onclick="closeGiftModal()" class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-red-950 font-bold rounded-xl shadow-lg">
+                确定并开心收下
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* Global State Variables */
+        const stamps = {
+            fu: false,   // 吉签
+            lu: false,   // 猜灯谜
+            shou: false, // 游园打卡
+            xi: false,   // 大转盘
+            cai: false   // 接福小游戏
+        };
+
+        // Fortune Sticks Database
+        const fortunes = [
+            { title: "【大吉】鸿运当头", verse: "春风送暖入屠苏，迎春接福展宏图", desc: "新年鸿运当头，百事顺遂，事业学业蒸蒸日上！" },
+            { title: "【上吉】金玉满堂", verse: "日出东方紫气生，财源广进福满门", desc: "财运滚滚而来，投资理财顺风顺水，喜事连连！" },
+            { title: "【大吉】吉祥如意", verse: "喜鹊登梅迎新春，家和万事百业兴", desc: "家庭和睦安康，生活幸福美满，所求皆能如愿！" },
+            { title: "【上吉】步步高升", verse: "龙腾蛇跃展宏图，鹏程万里任翱翔", desc: "学业与事业突飞猛进，有贵人相助，突破创新！" }
+        ];
+
+        // Riddles Database
+        const riddles = [
+            { q: '"东南西北无路走"（打一字）', a: '哑', h: '想想这四个方向合在一起是“四方”，加上口...' },
+            { q: '"新年岁首"（打一字）', a: '文', h: '“新”字的前半部分加上“岁”字字首...' },
+            { q: '"守岁到天明"（打一成语）', a: '通宵达旦', h: '形容一整夜直到天亮...' },
+            { q: '"欢欢喜喜过大年"（打一字）', a: '酣', h: '“甘”甜加上酒...' }
+        ];
+        let currentRiddleIndex = 0;
+
+        /* Tab Switching Handler */
+        function switchTab(tabName) {
+            document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-yellow-400', 'text-red-950');
+                btn.classList.add('bg-red-900/80', 'text-yellow-200');
+            });
+
+            document.getElementById(`section-${tabName}`).classList.remove('hidden');
+            const activeTab = document.getElementById(`tab-${tabName}`);
+            activeTab.classList.remove('bg-red-900/80', 'text-yellow-200');
+            activeTab.classList.add('bg-yellow-400', 'text-red-950');
+        }
+
+        /* 1. Fortune Stick Logic */
+        function drawFortune() {
+            const box = document.getElementById('stick-box');
+            box.classList.add('animate-bounce');
+            
+            setTimeout(() => {
+                box.classList.remove('animate-bounce');
+                const random = fortunes[Math.floor(Math.random() * fortunes.length)];
+                document.getElementById('fortune-title').innerText = random.title;
+                document.getElementById('fortune-verse').innerText = `"${random.verse}"`;
+                document.getElementById('fortune-desc').innerText = random.desc;
+                document.getElementById('fortune-result').classList.remove('hidden');
+
+                unlockStamp('fu');
+                confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+            }, 600);
+        }
+
+        /* 2. Riddle Logic */
+        function checkRiddle() {
+            const val = document.getElementById('riddle-input').value.trim();
+            const correct = riddles[currentRiddleIndex].a;
+            if (val === correct) {
+                alert('🎉 恭喜你答对了！集得【禄】字印章！');
+                unlockStamp('lu');
+                revealRiddle();
+            } else {
+                alert('答案不对哦，再仔细想想或者查看提示吧！');
+            }
+        }
+
+        function toggleRiddleHint() {
+            const hintBox = document.getElementById('riddle-hint-box');
+            hintBox.classList.toggle('hidden');
+        }
+
+        function revealRiddle() {
+            document.getElementById('riddle-answer').innerText = `“${riddles[currentRiddleIndex].a}”`;
+            document.getElementById('riddle-answer-box').classList.remove('hidden');
+        }
+
+        function nextRiddle() {
+            currentRiddleIndex = (currentRiddleIndex + 1) % riddles.length;
+            const r = riddles[currentRiddleIndex];
+            document.getElementById('riddle-question').innerText = r.q;
+            document.getElementById('riddle-hint').innerText = r.h;
+            document.getElementById('riddle-count').innerText = `第 ${currentRiddleIndex + 1} / ${riddles.length} 题`;
+            document.getElementById('riddle-input').value = '';
+            document.getElementById('riddle-hint-box').classList.add('hidden');
+            document.getElementById('riddle-answer-box').classList.add('hidden');
+        }
+
+        /* 3. Catch Fortune Mini-game */
+        let canvas, ctx, gameLoopId;
+        let basket = { x: 150, width: 60, height: 18 };
+        let items = [];
+        let score = 0;
+        let highscore = 0;
+        let isGaming = false;
+
+        function initGame() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // Touch & Mouse Movement
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                basket.x = e.clientX - rect.left - basket.width / 2;
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                if(e.touches[0]) {
+                    basket.x = e.touches[0].clientX - rect.left - basket.width / 2;
+                }
+            });
+        }
+
+        function startGame() {
+            document.getElementById('game-start-overlay').classList.add('hidden');
+            score = 0;
+            items = [];
+            isGaming = true;
+            document.getElementById('game-score').innerText = score;
+
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!isGaming) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Spawn items
+            if (Math.random() < 0.04) {
+                const types = ['hongbao', 'yuanbao', 'bomb'];
+                const weights = [0.6, 0.3, 0.1];
+                const r = Math.random();
+                let type = 'hongbao';
+                if (r > 0.6 && r < 0.9) type = 'yuanbao';
+                else if (r >= 0.9) type = 'bomb';
+
+                items.push({
+                    x: Math.random() * (canvas.width - 20),
+                    y: 0,
+                    speed: 2 + Math.random() * 2,
+                    type: type
+                });
+            }
+
+            // Draw Basket
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(basket.x, canvas.height - basket.height - 5, basket.width, basket.height);
+            ctx.fillStyle = '#D32F2F';
+            ctx.font = '12px Noto Serif SC';
+            ctx.fillText('聚宝盆', basket.x + 12, canvas.height - 10);
+
+            // Update & Draw Items
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.y += item.speed;
+
+                if (item.type === 'hongbao') {
+                    ctx.fillStyle = '#FF4444';
+                    ctx.fillRect(item.x, item.y, 16, 22);
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillText('福', item.x + 2, item.y + 15);
+                } else if (item.type === 'yuanbao') {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(item.x + 10, item.y + 10, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = '#333';
+                    ctx.beginPath();
+                    ctx.arc(item.x + 8, item.y + 8, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Catch Collision
+                if (item.y + 20 >= canvas.height - basket.height - 5 && item.x > basket.x - 10 && item.x < basket.x + basket.width) {
+                    if (item.type === 'hongbao') score += 10;
+                    else if (item.type === 'yuanbao') score += 20;
+                    else if (item.type === 'bomb') score = Math.max(0, score - 20);
+
+                    document.getElementById('game-score').innerText = score;
+                    if (score >= 60) unlockStamp('cai');
+
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Out of screen
+                if (item.y > canvas.height) {
+                    items.splice(i, 1);
+                }
+            }
+
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        /* 4. Wheel Logic */
+        const wheelPrizes = ['糖画兑换券', '春联礼盒', '财神玩偶', '新春红包', '吉星高照', '谢谢参与'];
+        let wheelAngle = 0;
+
+        function drawWheel() {
+            const wCanvas = document.getElementById('wheelCanvas');
+            const wCtx = wCanvas.getContext('2d');
+            const numSlices = wheelPrizes.length;
+            const sliceAngle = (Math.PI * 2) / numSlices;
+
+            wCtx.clearRect(0, 0, 220, 220);
+
+            for (let i = 0; i < numSlices; i++) {
+                const angle = wheelAngle + i * sliceAngle;
+                wCtx.beginPath();
+                wCtx.fillStyle = i % 2 === 0 ? '#D32F2F' : '#8B0000';
+                wCtx.moveTo(110, 110);
+                wCtx.arc(110, 110, 105, angle, angle + sliceAngle);
+                wCtx.fill();
+                wCtx.stroke();
+
+                // Prize Text
+                wCtx.save();
+                wCtx.translate(110, 110);
+                wCtx.rotate(angle + sliceAngle / 2);
+                wCtx.textAlign = "right";
+                wCtx.fillStyle = "#FFD700";
+                wCtx.font = "bold 11px Noto Serif SC";
+                wCtx.fillText(wheelPrizes[i], 90, 4);
+                wCtx.restore();
+            }
+        }
+
+        function spinWheel() {
+            const btn = document.getElementById('spin-btn');
+            btn.disabled = true;
+
+            const extraRounds = 5 + Math.floor(Math.random() * 3);
+            const targetIndex = Math.floor(Math.random() * wheelPrizes.length);
+            const totalRotation = extraRounds * Math.PI * 2 + targetIndex * ((Math.PI * 2) / wheelPrizes.length);
+
+            let startTime = null;
+            function animateWheel(now) {
+                if (!startTime) startTime = now;
+                const elapsed = (now - startTime) / 1000;
+
+                if (elapsed < 3) {
+                    wheelAngle = (totalRotation * (elapsed / 3)) % (Math.PI * 2);
+                    drawWheel();
+                    requestAnimationFrame(animateWheel);
+                } else {
+                    unlockStamp('xi');
+                    btn.disabled = false;
+                    alert(`🎉 恭喜转到：${wheelPrizes[targetIndex]}！已为您解锁【喜】字印章！`);
+                }
+            }
+            requestAnimationFrame(animateWheel);
+        }
+
+        /* Stamps Management */
+        function unlockStamp(key) {
+            if (!stamps[key]) {
+                stamps[key] = true;
+                const slot = document.getElementById(`stamp-slot-${key}`);
+                if (slot) slot.classList.add('active');
+
+                // Update count badge
+                const count = Object.values(stamps).filter(Boolean).length;
+                document.getElementById('stamp-badge').innerText = `${count}/5`;
+                document.getElementById('stamp-count-text').innerText = count;
+
+                if (count === 5) {
+                    const giftBtn = document.getElementById('claim-gift-btn');
+                    giftBtn.disabled = false;
+                    giftBtn.classList.remove('bg-gray-600', 'opacity-50', 'cursor-not-allowed');
+                    giftBtn.classList.add('bg-gradient-to-r', 'from-yellow-500', 'to-amber-500', 'text-red-950', 'hover:from-yellow-400');
+                    document.getElementById('reward-status-text').innerText = "🎉 恭喜！您已完美集齐五福印章！可立即兑换新春大礼包！";
+                }
+            }
+        }
+
+        function claimShouStamp() {
+            unlockStamp('shou');
+            document.getElementById('shou-btn').innerText = "已完成打卡";
+            document.getElementById('shou-btn').disabled = true;
+            document.getElementById('shou-btn').classList.add('opacity-50');
+        }
+
+        function openGiftModal() {
+            document.getElementById('gift-modal').classList.remove('hidden');
+            confetti({ particleCount: 100, spread: 80 });
+        }
+
+        function closeGiftModal() {
+            document.getElementById('gift-modal').classList.add('hidden');
+        }
+
+        /* Particle Falling Animation Canvas */
+        function initFallingParticles() {
+            const pCanvas = document.getElementById('particleCanvas');
+            const pCtx = pCanvas.getContext('2d');
+            pCanvas.width = window.innerWidth;
+            pCanvas.height = window.innerHeight;
+
+            const particles = Array.from({ length: 30 }, () => ({
+                x: Math.random() * pCanvas.width,
+                y: Math.random() * pCanvas.height,
+                size: Math.random() * 4 + 2,
+                speedY: Math.random() * 1 + 0.5,
+                color: Math.random() > 0.5 ? '#FFD700' : '#FF4444'
+            }));
+
+            function animateParticles() {
+                pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+                particles.forEach(p => {
+                    p.y += p.speedY;
+                    if (p.y > pCanvas.height) p.y = 0;
+                    pCtx.fillStyle = p.color;
+                    pCtx.beginPath();
+                    pCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    pCtx.fill();
+                });
+                requestAnimationFrame(animateParticles);
+            }
+            animateParticles();
+        }
+
+        /* Poster Generation using html2canvas */
+        function generatePoster() {
+            const el = document.getElementById('section-stamps');
+            html2canvas(el).then(canvas => {
+                const link = document.createElement('a');
+                link.download = '2027新春庙会集章成就卡.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        /* Window Onload Initialization */
+        window.onload = function() {
+            initGame();
+            drawWheel();
+            initFallingParticles();
+        };
+    </script>
+</body>
+</html>
